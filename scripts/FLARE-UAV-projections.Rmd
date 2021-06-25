@@ -1,0 +1,382 @@
+---
+title: "FLARE-UAV-veg"
+author: "Anna Talucci"
+date: "1/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+Define projections for equal area for data extraction.
+
+Equal Area projection for russia
+https://gis.stackexchange.com/questions/264093/projection-for-russia-map
+
++proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs 
+
+```{r}
+newproj = "+proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs "
+```
+
+# Packages
+
+```{r, include=FALSE}
+library(sp) # spatial data
+library(rgdal) # geospatial data
+library(raster) # deals with rasters
+library(landsat) # processes landsat images
+library(rgeos) # GIS Geometry
+library(foreign) # deals with dbf files
+library(SDMTools) #Species distribution model tools for patch metrics
+library(dplyr)
+library(latticeExtra)
+```
+
+```{r}
+gps = readOGR("../data/shapefiles/siberia_gps.shp", "siberia_gps") 
+```
+```{r}
+plot_locations <-
+  read.csv("../data/gcp_coordinates.csv")
+```
+
+```{r}
+plot_locations
+```
+```{r}
+plot_locations1 = na.omit(plot_locations)
+```
+
+```{r}
+plot.coords <- SpatialPointsDataFrame(plot_locations1[,5:6],plot_locations1,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+
+```{r}
+plots_wgs84 <- spTransform(plot.coords, CRS("+proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs "))
+
+
+```
+
+# Points for individual flights
+
+Subset gps data points by individual flight numbers
+## CYN
+
+```{r}
+cyn = plot_locations1 %>% group_by(site) %>% filter(site == "CYN") 
+
+```
+
+```{r}
+cyn_pt = SpatialPointsDataFrame(cyn[,5:6], cyn,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+cyn_pt_ee = spTransform(cyn_pt, CRS(newproj))
+```
+
+## Flight 3
+
+```{r}
+f3 = plot_locations1 %>% group_by(flight) %>% filter(flight == 3) 
+
+```
+
+```{r}
+aln_f3_pt = SpatialPointsDataFrame(f3[,5:6], f3,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+aln_f3_pt_ee = spTransform(aln_f3_pt, CRS(newproj))
+```
+
+## Flight 6
+
+```{r}
+f6 = plot_locations1 %>% group_by(flight) %>% filter(flight == 6) 
+
+```
+
+```{r}
+aln_f6_pt = SpatialPointsDataFrame(f6[,5:6], f6,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+aln_f6_pt_ee = spTransform(aln_f6_pt, CRS(newproj))
+```
+
+
+## Flight 14
+
+```{r}
+f14 = plot_locations1 %>% group_by(flight) %>% filter(flight == 14) 
+
+```
+
+```{r}
+hrb_f14_pt = SpatialPointsDataFrame(f14[,5:6], f14,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+hrb_f14_pt_ee = spTransform(hrb_f14_pt, CRS(newproj))
+```
+
+## Flight 15
+
+```{r}
+f15 = plot_locations1 %>% group_by(flight) %>% filter(flight == 15) 
+
+```
+
+```{r}
+cyn_f15_pt = SpatialPointsDataFrame(f15[,5:6], f15,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+cyn_f15_pt_ee = spTransform(cyn_f15_pt, CRS(newproj))
+```
+
+Transform from sp to sf
+```{r}
+cyn_f15_pt_ee_sf = st_as_sf(cyn_f15_pt_ee)
+```
+
+Write shapefile to outputs
+```{r}
+st_write(cyn_f15_pt_ee_sf, "../outputs/shapefiles/cyn_f15_ee.shp", driver="ESRI Shapefile") 
+```
+
+
+## Flight 16
+
+```{r}
+f16 = plot_locations1 %>% group_by(flight) %>% filter(flight == 16) 
+
+```
+
+```{r}
+cyn_f16_pt = SpatialPointsDataFrame(f16[,5:6], f16,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+cyn_f16_pt_ee = spTransform(cyn_f16_pt, CRS(newproj))
+```
+
+## Flight 17
+
+```{r}
+f17 = plot_locations1 %>% group_by(flight) %>% filter(flight == 17) 
+
+```
+
+```{r}
+cyn_f17_pt = SpatialPointsDataFrame(f17[,5:6], f17,
+                                      proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+```
+
+```{r}
+cyn_f17_pt_ee = spTransform(cyn_f17_pt, CRS(newproj))
+```
+
+# Raster data
+
+## Flight 3
+
+```{r}
+aln_f3 = raster("../data/ortho_stereo/ALN_TR1_FL003.tif")
+```
+
+```{r}
+aln_f3
+```
+
+```{r}
+extent(aln_f3)
+```
+
+
+```{r}
+projection(aln_f3)
+
+```
+
+```{r}
+aln_f3_ee <- projectRaster(aln_f3, crs=newproj)
+```
+
+## Flight 6
+
+```{r}
+aln_f6 = raster("../data/ortho_stereo/ALN_TR3_FL006.tif")
+```
+
+
+```{r}
+aln_f6
+```
+
+```{r}
+extent(aln_f6)
+```
+
+
+```{r}
+projection(aln_f6)
+
+```
+
+```{r}
+aln_f6_ee <- projectRaster(aln_f6, crs=newproj)
+```
+
+
+## Flight 14
+
+```{r}
+hrb_f14 = raster("../data/ortho_stereo/HRB_ALL_Fl014.tif")
+```
+
+
+```{r}
+hrb_f14
+```
+
+```{r}
+extent(hrb_f14)
+```
+
+```{r}
+hrb_f14_ee <- projectRaster(hrb_f14, crs=newproj)
+```
+
+```{r}
+hrb_f14_ee
+```
+
+## Flight 15
+
+```{r}
+cyn_f15 = raster("../data/ortho_stereo/CYN_TR1_FL015.tif")
+```
+
+
+```{r}
+cyn_f15
+```
+
+```{r}
+extent(cyn_f15)
+```
+
+```{r}
+cyn_f15_ee <- projectRaster(cyn_f15, crs=newproj)
+```
+
+```{r}
+cyn_f15_ee
+```
+
+## Flight 16
+
+```{r}
+cyn_f16 = raster("../data/ortho_stereo/CYN_TR1_FL016.tif")
+```
+
+
+```{r}
+cyn_f16
+```
+
+```{r}
+extent(cyn_f16)
+```
+
+```{r}
+cyn_f16_ee <- projectRaster(cyn_f16, crs=newproj)
+```
+
+```{r}
+cyn_f16_ee
+```
+
+## Flight 17
+
+```{r}
+cyn_f17 = raster("../data/ortho_stereo/CYN_TR2_FL017.tif")
+```
+
+
+```{r}
+cyn_f17
+```
+
+```{r}
+extent(cyn_f17)
+```
+
+```{r}
+cyn_f17_ee <- projectRaster(cyn_f17, crs=newproj)
+```
+
+```{r}
+cyn_f17_ee
+```
+
+
+# Plot UAV and GPS data
+
+## Flight 3
+
+```{r}
+plot(aln_f3_ee) # the plot function lets you view the maps
+plot(aln_f3_pt_ee, add=TRUE)
+```
+
+## Flight 6
+
+```{r}
+plot(aln_f6_ee) # the plot function lets you view the maps
+plot(aln_f6_pt_ee, add=TRUE)
+```
+
+
+## Flight 14
+
+```{r}
+plot(hrb_f14_ee) # the plot function lets you view the maps
+plot(hrb_f14_pt_ee, add=TRUE)
+```
+
+## Flight 15
+
+```{r}
+plot(cyn_f15_ee) # the plot function lets you view the maps
+plot(cyn_f15_pt_ee, add=TRUE)
+```
+
+## Flight 16
+
+```{r}
+plot(cyn_f16_ee) # the plot function lets you view the maps
+plot(cyn_f16_pt_ee, add=TRUE)
+```
+
+## Flight 17
+
+```{r}
+plot(cyn_f17_ee) # the plot function lets you view the maps
+plot(cyn_f17_pt_ee, add=TRUE)
+```
+

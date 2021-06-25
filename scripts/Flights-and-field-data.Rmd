@@ -1,0 +1,528 @@
+---
+title: "Flights and field data exploration"
+author: "Anna Talucci"
+date: "2/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Overview
+
+Initial data inspection.
+
+# Library
+```{r, include=FALSE}
+library(sp) # spatial data
+library(rgdal) # geospatial data
+library(raster) # deals with rasters
+library(ggplot2)
+library(rgeos) # GIS Geometry
+library(foreign) # deals with dbf files
+library(tidyr)
+library(dplyr)
+library(latticeExtra)
+library(sf)
+```
+
+# Projections
+
+WGS 84 need for gee
+```{r}
+wgs_proj =  "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs "
+
+```
+
+Equal Area projection for russia need for buffering hotspot data
+https://gis.stackexchange.com/questions/264093/projection-for-russia-map
+
++proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs 
++proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 
+
+```{r}
+ee_russia = "+proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "
+```
+
+
+# Field data
+
+```{r}
+field_data = read.csv("../data/field/site_info_2018-2019.csv")
+```
+
+
+```{r}
+head(field_data)
+```
+
+
+## 
+```{r}
+field_data_ch = field_data %>% group_by(year) %>% filter(region == "Cherskiy")
+
+```
+
+
+```{r include=FALSE}
+field_data_ch
+```
+
+```{r}
+site_CN_2001 = field_data_ch %>% group_by(site) %>% filter(site == "CN")
+
+site_CN_2001
+```
+
+```{r}
+site_ANS_2003 = field_data_ch %>% group_by(site) %>% filter(site == "ANS")
+
+site_ANS_2003
+```
+
+```{r}
+site_alnus_1984 = field_data_ch %>% group_by(site) %>% filter(site == "Alnus")
+
+site_alnus_1984
+```
+
+
+```{r}
+site_bp_1983 = field_data_ch %>% group_by(site) %>% filter(site == "BP")
+
+site_bp_1983
+```
+
+
+```{r}
+ans_2003_pt <- SpatialPointsDataFrame(site_ANS_2003[,15:16],site_ANS_2003, proj4string = CRS(wgs_proj))
+```
+
+```{r}
+cn_2001_pt <- SpatialPointsDataFrame(site_CN_2001[,15:16],site_CN_2001, proj4string = CRS(wgs_proj))
+```
+
+```{r}
+alnus_1984_pt <- SpatialPointsDataFrame(site_alnus_1984[,15:16],site_alnus_1984, proj4string = CRS(wgs_proj))
+```
+
+```{r}
+bp_1983_pt <- SpatialPointsDataFrame(site_bp_1983[,15:16],site_bp_1983, proj4string = CRS(wgs_proj))
+```
+
+```{r}
+plot(cn_2001_pt)
+```
+```{r}
+plot(ans_2003_pt)
+```
+
+```{r}
+plot(alnus_1984_pt)
+```
+
+```{r}
+ans_2003_ee <- spTransform(ans_2003_pt, CRS(ee_russia))
+```
+
+```{r}
+cn_2001_ee <- spTransform(cn_2001_pt, CRS(ee_russia))
+```
+
+```{r}
+alnus_1984_ee <- spTransform(alnus_1984_pt, CRS(ee_russia))
+```
+
+
+```{r}
+bp_1983_ee <- spTransform(bp_1983_pt, CRS(ee_russia))
+```
+
+# RGB rasters
+
+```{r}
+alnus_tr1_f07 = raster("../data/rgb/ALN_TR1_FL007.tif")
+brp_tr2_f12 = raster("../data/rgb/BRP_TR2_FL012.tif")
+cn_tr1_f16 = raster("../data/rgb/CYN_TR1_FL016.tif")
+cn_tr2_f17 = raster("../data/rgb/CYN_TR2_FL017.tif")
+cn_tr1_f15 = raster("../data/rgb/CYN_TR1_FL015.tif")
+```
+
+```{r}
+alnus_tr1_f07
+brp_tr2_f12
+cn_tr1_f16
+cn_tr2_f17
+cn_tr1_f15 
+```
+
+```{r}
+ans_tr2_f04 = raster("../data/rgb/ALN_TR2_FL004.tif")
+ans_tr2_f05 = raster("../data/rgb/ALN_TR2_FL005.tif")
+ans_tr3_f06 = raster("../data/rgb/ALN_TR3_FL006.tif")
+brp_tr1_f09 = raster("../data/rgb/BRP_TR1_FL009.tif")
+
+```
+
+```{r}
+ans_tr2_f04
+ans_tr3_f06
+brp_tr1_f09
+```
+
+
+
+# Multispectral Raster Data
+```{r}
+alnus_f08_multi = raster("../data/multispectral/RU_ALN_TR1_FL008M/RU_ALN_TR1_FL008M_transparent_mosaic_green.tif")
+```
+
+```{r}
+alnus_f08_multi
+```
+
+```{r}
+cn_f16_multi = raster("../data/multispectral/RU_CYN_TR1_FL016B/RU_CYN_TR1_FL016B_transparent_mosaic_green.tif")
+```
+
+```{r}
+cn_f16_multi
+```
+
+```{r}
+cn_f17_multi = raster("../data/multispectral/RU_CYN_TR2_FL017B/RU_CYN_TR2_FL017B_transparent_mosaic_green.tif")
+```
+
+```{r}
+cn_f17_multi
+```
+
+```{r}
+cn_f20_multi = raster("../data/multispectral/RU_CYN_TR1_FL020M/RU_CYN_TR1_FL020M_transparent_mosaic_green.tif")
+```
+
+```{r}
+cn_f20_multi
+```
+
+```{r}
+bp_f13_ndvi = raster("../data/pix4d_ndvi_May19/RU_BP_TR2_FL013M_index_ndvi.tif")
+```
+
+```{r}
+bp_f13_ndvi
+```
+
+# Plots
+
+## Aluns 1984 
+Flight 8 - Multispectral
+Flight 7 - RGB
+FIeld Points from Transect 1
+
+All seem to align!
+
+```{r}
+plot(alnus_f08_multi) # the plot function lets you view the maps
+plot(alnus_1984_ee, add=TRUE)
+```
+
+```{r}
+
+plot(alnus_tr1_f07)
+plot(alnus_1984_ee, add=TRUE)
+```
+
+```{r}
+plot(alnus_f08_multi) # the plot function lets you view the maps
+plot(alnus_tr1_f07, add=TRUE)
+plot(alnus_1984_ee, add=TRUE)
+```
+
+
+
+
+## CN 2001
+
+* Flight 16 multispectral (Transect 1)
+* Flight 17 multispectral (transect 2)
+* Flight 20 multispectral (transect 1)
+* Flight 16 RGB (Transect 1)
+* Flight 17 RGB (Transect 2)
+* Flight 15 RGB (transect 1)
+
+### Flight 16 and 20 (Transect 1)
+
+#### RGB
+
+
+```{r}
+plot(cn_tr1_f15)
+plot(cn_2001_ee, add=TRUE)
+```
+
+```{r}
+plot(cn_tr1_f15)
+plot(cn_f20_multi, add=TRUE)
+plot(cn_2001_ee, add=TRUE)
+```
+
+Match up between Flight 20 multispectral, Flight 15 RGB, and field sites!
+
+```{r}
+plot(cn_tr1_f16)
+plot(cn_2001_ee, add=TRUE)
+```
+
+One field site missed by flight for RGB
+
+#### Multi
+```{r}
+plot(cn_f16_multi) # the plot function lets you view the maps
+plot(cn_2001_ee, add=TRUE)
+```
+
+One field site missed by flight for multispectral for flight 16
+
+```{r}
+plot(cn_f20_multi) # the plot function lets you view the maps
+plot(cn_2001_ee, add=TRUE)
+```
+
+
+Flight 20 multispectral covers all field plots, 
+### Flight 17 (transect 2)
+
+#### RGB and Field
+```{r}
+plot(cn_tr2_f17) # the plot function lets you view the maps
+plot(cn_2001_ee, add=TRUE)
+```
+
+#### Multi and Field
+```{r}
+plot(cn_f17_multi) # the plot function lets you view the maps
+plot(cn_2001_ee, add=TRUE)
+```
+
+```{r}
+plot(cn_f17_multi)
+plot(cn_tr2_f17, add=TRUE)
+plot(cn_2001_ee, add=TRUE)
+```
+
+## BP 1983 (field; (1985 elena))
+### Flight 12
+
+### RGB
+```{r}
+plot(brp_tr2_f12)
+plot(bp_1983_ee, add=TRUE)
+```
+
+### NDVI
+```{r}
+plot(bp_f13_ndvi)
+plot(bp_1983_ee, add=TRUE)
+```
+
+### RGB
+```{r}
+plot(brp_tr1_f09 )
+plot(bp_1983_ee, add=TRUE)
+```
+
+# ANS 2003
+## RGB only 
+
+```{r}
+
+plot(ans_tr2_f04)
+plot(ans_2003_ee, add=TRUE)
+```
+
+```{r}
+plot(ans_tr2_f05)
+plot(ans_2003_ee, add=TRUE)
+```
+
+```{r}
+plot(ans_tr3_f06)
+plot(ans_2003_ee, add=TRUE)
+```
+
+
+# Subset field data by transect
+
+## Create a unique ID for each point
+```{r}
+field_data2 = field_data %>% mutate(ID =  paste(site, burn_year, transect, plot, sep = '_')) %>%
+  select(ID, longitude, latitude, elevation, month:photopoint_files)
+field_data2
+```
+
+## ANS_tr2
+
+```{r}
+fd_ans_tr2 = field_data2 %>% group_by(site) %>% filter(site=='ANS') %>% group_by(transect) %>% filter(transect == 2)
+fd_ans_tr2
+```
+
+```{r}
+fd_coords = cbind(fd_ans_tr2$longitude, fd_ans_tr2$latitude)
+fd_ans_tr2_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_ans_tr2)
+```
+
+```{r}
+head(fd_ans_tr2_pt)
+```
+```{r}
+fd_ans_tr2_pt_sf = st_as_sf(fd_ans_tr2_pt)
+```
+
+```{r}
+ggplot() +
+  geom_sf(data=fd_ans_tr2_pt_sf) +
+  geom_text(data = fd_ans_tr2_pt_sf, aes(x = longitude, y=latitude, label = ID), size = 1)
+```
+
+## ANS_tr3
+```{r}
+fd_ans_tr3 = field_data2 %>% group_by(site) %>% filter(site=='ANS') %>% group_by(transect) %>% filter(transect == 3)
+fd_ans_tr3
+```
+
+```{r}
+fd_coords = cbind(fd_ans_tr3$longitude, fd_ans_tr3$latitude)
+fd_ans_tr3_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_ans_tr3)
+```
+
+## alnus_tr1
+```{r}
+fd_alnus_tr1 = field_data2 %>% group_by(site) %>% filter(site=='Alnus') %>% group_by(transect) %>% filter(transect == 1)
+fd_alnus_tr1
+```
+
+```{r}
+fd_coords = cbind(fd_alnus_tr1$longitude, fd_alnus_tr1$latitude)
+fd_alnus_tr1_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_alnus_tr1)
+```
+
+
+## BP_tr1
+
+```{r}
+fd_bp_tr1 = field_data2 %>% group_by(site) %>% filter(site=='BP') %>% group_by(transect) %>% filter(transect == 1)
+fd_bp_tr1
+```
+
+```{r}
+fd_coords = cbind(fd_bp_tr1$longitude, fd_bp_tr1$latitude)
+fd_bp_tr1_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_bp_tr1)
+```
+
+## BP_tr2
+```{r}
+fd_bp_tr2 = field_data2 %>% group_by(site) %>% filter(site=='BP') %>% group_by(transect) %>% filter(transect == 2)
+fd_bp_tr2
+```
+
+```{r}
+fd_coords = cbind(fd_bp_tr1$longitude, fd_bp_tr1$latitude)
+fd_bp_tr1_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_bp_tr1)
+```
+## CN_tr1
+```{r}
+fd_cn_tr1 = field_data2 %>% group_by(region) %>% filter(region == "Cherskiy") %>% group_by(site) %>% filter(site=='CN') %>% group_by(transect) %>% filter(transect == 1)
+fd_cn_tr1
+```
+
+```{r}
+fd_coords = cbind(fd_ch_tr1$longitude, fd_cn_tr1$latitude)
+fd_cn_tr1_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_cn_tr1)
+```
+
+
+## CN_tr2
+```{r}
+fd_cn_tr2 = field_data2 %>% group_by(region) %>% filter(region == "Cherskiy") %>% group_by(site) %>% filter(site=='CN') %>% group_by(transect) %>% filter(transect == 2)
+fd_cn_tr1
+```
+
+```{r}
+fd_coords = cbind(fd_cn_tr2$longitude, fd_cn_tr2$latitude)
+fd_cn_tr2_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_cn_tr2)
+```
+
+
+## CN_tr3
+```{r}
+fd_cn_tr3 = field_data2 %>% group_by(region) %>% filter(region == "Cherskiy") %>% group_by(site) %>% filter(site=='CN') %>% group_by(transect) %>% filter(transect == 3)
+fd_cn_tr3
+```
+
+```{r}
+fd_coords = cbind(fd_cn_tr3$longitude, fd_cn_tr3$latitude)
+fd_cn_tr3_pt <- SpatialPointsDataFrame(fd_coords, proj4string = CRS(wgs_proj), data = fd_cn_tr3)
+```
+
+# Notes to self for process
+
+* Resample to equal pixel size
+* Calculate GCC
+* Calculate NDVI
+* Buffer field sites to clip image
+* Buffer field sites to extract data
+
+
+# Elena's code for gcc
+```{r eval=FALSE, include=FALSE}
+########## Green Chromatic Index ###########
+
+getwd()
+setwd("Z:/geography-storage01.colgate.edu/data/data_repo/field_data/siberia_uas_2019/orthomosaics/ortho_exports")
+
+install.packages("raster")
+## use stack to get all 4 bands
+f1 <- stack("ortho_exports/CHY_RLD_FL001.tif")
+
+## projection
+projection(f1)
+# the original projection has k=0, which appears ot be wrong
+# +proj=stere +lat_0=90 +lat_ts=71 +lon_0=0 +k=0 +x_0=0 +y_0=0 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs
+
+## defining correct projection
+projection(f1) <- CRS("+proj=stere +lat_0=90 +lat_ts=71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+
+plot(f1)
+
+## masking to elimate unwanted values 
+f1b <- mask(f1[[1:3]],f1[[4]],maskvalue=0)
+plot(f1b)
+
+## calculating gcc
+gcc <- f1b[[2]]/(f1b[[1]]+f1b[[2]]+f1b[[3]])
+plot(gcc)
+
+## list files
+l <- list.files(path="ortho_exports", pattern = glob2rx("*.tif"))
+l
+install.packages("svMisc")
+## for loop (for all images in list)
+for(i in 1:(length(l)))
+{
+  progress(i, progress.bar=TRUE)
+  f1c <- stack("ortho_exports/CHY_RLD_FL001.tif")
+  projection(f1c) <- CRS("+proj=stere +lat_0=90 +lat_ts=71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+  f1c <- mask(f1c[[1:3]], f1c[[4]], maskvalue=0)
+  gcc <- f1c[[2]]/(f1c[[1]]+f1c[[2]]+f1c[[3]])
+  o <- gsub(".tif", "_gcc.tif","list")
+  # read raster stack
+  # fix projection
+  # mask stack
+  # calculate gcc
+  # write result to file
+}
+
+```
+

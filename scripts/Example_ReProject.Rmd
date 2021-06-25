@@ -1,0 +1,64 @@
+---
+title: "Untitled"
+author: "Anna Talucci"
+date: "10/18/2020"
+output: html_document
+---
+# Overview
+
+Re-define projections
+
+# Packages
+```{r, include=FALSE}
+library(sp) # spatial data
+library(rgdal) # geospatial data
+library(raster) # deals with rasters
+library(ggplot2)
+library(rgeos) # GIS Geometry
+library(foreign) # deals with dbf files
+library(tidyr)
+library(dplyr)
+library(latticeExtra)
+library(sf)
+```
+
+# Projections
+
+WGS 84 need for gee
+```{r}
+wgs_proj =  "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs "
+
+```
+
+Equal Area projection for russia need for buffering hotspot data
+https://gis.stackexchange.com/questions/264093/projection-for-russia-map
+
++proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs 
++proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 
+
+```{r}
+ee_russia = "+proj=aea +lat_1=50 +lat_2=70 +lat_0=56 +lon_0=100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "
+```
+
+
+# Reproject
+Transform to Equal area projection
+**Replace VECTOR_WGS with YOUR POINT SHAPEFILE**
+**Rename VECTOR_ee as you see fit**
+**VECTOR_ee linked through script**
+```{r}
+VECTOR_ee <- spTransform(VECTOR_WGS, CRS(ee_russia))
+```
+
+Transform from sp object to sf object in order to save to shapefile (sf objects allow for attribute tables and using tidyverse package)
+```{r}
+VECTOR_ee_sf = st_as_sf(VECTOR_ee)
+```
+
+## Write to shape file
+
+**I use a subdirectory folder structure folder structurethat keeps scripts, data, outputs, figures in separate folders**
+**This chunk of code is set up to go to a subfolder for outputs**
+**this portion indicates the subfolder and file name "../outputs/field-data/point/VECTOR_ee_sf.shp"**
+```{r eval=FALSE, include=FALSE}
+st_write(VECTOR_ee_sf, "../outputs/field-data/point/VECTOR_ee_sf.shp", driver="ESRI Shapefile") 
